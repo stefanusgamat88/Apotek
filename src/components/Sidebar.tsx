@@ -99,7 +99,7 @@ export const Sidebar: React.FC = () => {
       badge: 'Pemilik',
       badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
     },
-    { id: 'settings', label: 'Pengaturan & Backup', icon: Settings, role: 'all', badge: 'Backup', badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' },
+    { id: 'settings', label: 'Pengaturan Apotek', icon: Settings, role: 'all', badge: 'GAS Cloud', badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' },
   ];
 
   const handleMenuClick = (tabId: string) => {

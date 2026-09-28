@@ -84,7 +84,10 @@ export const Navbar: React.FC = () => {
     customers: { title: 'Data Pelanggan & Pasien', subtitle: 'Riwayat kunjungan, catatan alergi obat & loyalitas' },
     reports: { title: 'Laporan Lengkap & Analisis', subtitle: 'Laporan omzet, laba rugi akuntansi, ekspor PDF/Excel' },
     auth: { title: 'Login & Keamanan PIN', subtitle: 'Verifikasi login admin personal, ganti PIN keamanan & penguncian layar' },
-    settings: { title: 'Pengaturan & Backup Data', subtitle: 'Identitas apotek, nomor SIA/SIPA, nama apoteker, printer thermal & backup JSON berkala' },
+    settings: {
+      title: 'Pengaturan Apotek & Database Cloud',
+      subtitle: 'Identitas apotek, nomor SIA/SIPA, nama apoteker, printer thermal & integrasi Google Sheets (GAS)',
+    },
     'pos-modes': {
       title: 'Pusat Ganti Mode & Model Kasir POS',
       subtitle: 'Pilih model antarmuka kasir (Visual Grid, List Cepat Barcode Gun, Farmasi Klinis) & tema warna',
@@ -184,17 +187,6 @@ export const Navbar: React.FC = () => {
               </>
             )}
           </div>
-
-          {/* Auto-Backup Safety Indicator */}
-          <button
-            type="button"
-            onClick={() => setActiveTab('settings')}
-            className="hidden xl:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-50/70 text-emerald-800 hover:bg-emerald-100 border border-emerald-200/60 text-xs font-semibold transition-all cursor-pointer"
-            title="Sistem Cadangan Otomatis Harian & Mingguan Aktif. Klik untuk kelola riwayat cadangan."
-          >
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Cadangan: Aman</span>
-          </button>
 
           {/* Google Apps Script (GAS) Sheets Status */}
           <button

@@ -1,20 +1,14 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   AlertTriangle,
   Building,
   CheckCircle2,
-  Database,
-  Download,
-  FileCheck,
-  FileJson,
   KeyRound,
   Printer,
   Receipt,
   RotateCcw,
   Save,
   Shield,
-  Upload,
-  Clock,
   Sparkles,
   Info,
   Camera,
@@ -26,15 +20,12 @@ import {
   ArrowDownLeft,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { AutoBackupManagerCard } from '../components/AutoBackupManagerCard';
 
 export const SettingsView: React.FC = () => {
   const {
     settings,
     updateSettings,
     resetDemoData,
-    exportBackupJSON,
-    importBackupJSON,
     currentUser,
     setActiveTab,
     openPhotoModal,
@@ -59,15 +50,9 @@ export const SettingsView: React.FC = () => {
   const [taxRate, setTaxRate] = useState(settings.taxRate);
 
   const [savedSuccess, setSavedSuccess] = useState(false);
-  const [restoreFeedback, setRestoreFeedback] = useState<{ success: boolean; message: string } | null>(null);
   const [showResetConfirmModal, setShowResetConfirmModal] = useState(false);
   const [resetFeedback, setResetFeedback] = useState<{ success: boolean; message: string } | null>(null);
   const [isResetting, setIsResetting] = useState(false);
-  const [lastBackupTime, setLastBackupTime] = useState<string | null>(() => {
-    return localStorage.getItem('apotekpos_last_backup_time');
-  });
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleExecuteReset = () => {
     setIsResetting(true);
@@ -117,49 +102,16 @@ export const SettingsView: React.FC = () => {
     setTimeout(() => setSavedSuccess(false), 3500);
   };
 
-  const handleBackupNow = () => {
-    exportBackupJSON();
-    const nowStr = new Date().toLocaleString('id-ID', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-    setLastBackupTime(nowStr);
-    localStorage.setItem('apotekpos_last_backup_time', nowStr);
-  };
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      const content = evt.target?.result as string;
-      if (content) {
-        const result = importBackupJSON(content);
-        setRestoreFeedback(result);
-        setTimeout(() => setRestoreFeedback(null), 5000);
-      }
-    };
-    reader.readAsText(file);
-    // Reset file input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
   return (
     <div className="p-4 lg:p-6 space-y-6 max-w-5xl mx-auto overflow-y-auto custom-scrollbar">
       {/* Header */}
       <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h2 className="text-xl font-bold text-slate-800 tracking-tight">
-            Pengaturan Apotek & Printer Thermal
+            Pengaturan Apotek & Database Cloud
           </h2>
           <p className="text-xs text-slate-500">
-            Kelola profil personal apotek, nama apoteker resmi (SIA & SIPA), printer struk kasir, serta backup & restore database JSON berkala.
+            Kelola profil apotek, legalitas SIA & SIPA apoteker, printer struk kasir, serta integrasi database Google Apps Script (Google Sheets).
           </p>
         </div>
 
@@ -190,9 +142,6 @@ export const SettingsView: React.FC = () => {
           </div>
         </div>
       )}
-
-      {/* SECTION: Sistem Cadangan Otomatis Harian & Mingguan */}
-      <AutoBackupManagerCard />
 
       {/* SECTION: Backend Google Apps Script (GAS) & Google Sheets */}
       <div className="bg-gradient-to-br from-white to-emerald-50/40 p-6 rounded-3xl border border-emerald-200/90 shadow-xs space-y-4">
@@ -303,151 +252,6 @@ export const SettingsView: React.FC = () => {
               <ArrowDownLeft className="w-3.5 h-3.5 text-teal-600" />
               Download
             </button>
-          </div>
-        </div>
-      </div>
-
-      {/* SECTION: Backup & Restore Data JSON Secara Berkala */}
-      <div className="bg-gradient-to-br from-white to-slate-50 p-6 rounded-3xl border border-emerald-100 shadow-xs space-y-4">
-        <div className="flex items-center justify-between pb-3 border-b border-slate-200/80">
-          <div className="flex items-center gap-2.5 text-slate-900">
-            <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold">
-              <Database className="w-5 h-5 text-emerald-700" />
-            </div>
-            <div>
-              <h3 className="font-bold text-sm text-slate-900">Backup & Restore Database JSON (Berkala)</h3>
-              <p className="text-[11px] text-slate-500">
-                Amankan seluruh data apotek (katalog obat, riwayat transaksi, mutasi stok, supplier, pelanggan, dan pengaturan) ke dalam file .JSON secara mandiri.
-              </p>
-            </div>
-          </div>
-
-          <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-semibold">
-            <Sparkles className="w-3 h-3 text-emerald-600" />
-            Data Offline & Personal
-          </span>
-        </div>
-
-        {restoreFeedback && (
-          <div
-            className={`p-3.5 rounded-2xl text-xs font-semibold flex items-center gap-2 border animate-in fade-in ${
-              restoreFeedback.success
-                ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
-                : 'bg-rose-50 border-rose-200 text-rose-800'
-            }`}
-          >
-            {restoreFeedback.success ? (
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-            ) : (
-              <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
-            )}
-            <span>{restoreFeedback.message}</span>
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {/* Download Backup */}
-          <div className="p-4 bg-white rounded-2xl border border-slate-200 flex flex-col justify-between space-y-3">
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                  <FileJson className="w-4 h-4 text-emerald-600" />
-                  Download Backup JSON
-                </span>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-                  Lengkap
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-500 leading-relaxed">
-                Unduh file cadangan data JSON kapan saja sebelum tutup toko untuk menjaga keamanan data personal Anda.
-              </p>
-            </div>
-
-            <div className="pt-2 flex items-center justify-between gap-3 border-t border-slate-100">
-              <span className="text-[10px] text-slate-400 flex items-center gap-1">
-                <Clock className="w-3 h-3" />
-                {lastBackupTime ? `Terakhir: ${lastBackupTime}` : 'Belum di-backup'}
-              </span>
-              <button
-                id="btn-backup-json"
-                type="button"
-                onClick={handleBackupNow}
-                className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition-all flex items-center gap-1.5 active:scale-95"
-              >
-                <Download className="w-4 h-4" />
-                <span>Backup JSON</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Restore Backup */}
-          <div className="p-4 bg-white rounded-2xl border border-slate-200 flex flex-col justify-between space-y-3">
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                  <Upload className="w-4 h-4 text-indigo-600" />
-                  Restore dari File JSON
-                </span>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
-                  Import
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-500 leading-relaxed">
-                Punya file backup dari komputer atau perangkat lain? Unggah file .json untuk memulihkan seluruh data apotek.
-              </p>
-            </div>
-
-            <div className="pt-2 flex items-center justify-between gap-3 border-t border-slate-100">
-              <span className="text-[10px] text-slate-400">Format: .json ApotekPOS</span>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".json,application/json"
-                onChange={handleFileUpload}
-                className="hidden"
-                id="file-restore-input"
-              />
-              <button
-                id="btn-restore-json"
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold shadow-xs transition-all flex items-center gap-1.5 active:scale-95"
-              >
-                <Upload className="w-4 h-4" />
-                <span>Pilih File</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Card 3: Reset Ulang Database */}
-          <div className="p-4 bg-white rounded-2xl border border-rose-200 flex flex-col justify-between space-y-3 bg-gradient-to-br from-white to-rose-50/20">
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                  <RotateCcw className="w-4 h-4 text-rose-600" />
-                  Reset Ulang Database
-                </span>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700">
-                  Pabrik
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-500 leading-relaxed">
-                Kembalikan seluruh master obat, transaksi penjualan kasir, dan pengaturan ke data awal bawaan apotek.
-              </p>
-            </div>
-
-            <div className="pt-2 flex items-center justify-between gap-3 border-t border-slate-100">
-              <span className="text-[10px] text-slate-400">Kembali ke setelan awal</span>
-              <button
-                id="btn-reset-database-card"
-                type="button"
-                onClick={() => setShowResetConfirmModal(true)}
-                className="px-3.5 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold transition-all flex items-center gap-1.5 active:scale-95"
-              >
-                <RotateCcw className="w-3.5 h-3.5 text-rose-600" />
-                <span>Reset Database</span>
-              </button>
-            </div>
           </div>
         </div>
       </div>

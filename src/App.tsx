@@ -1,5 +1,4 @@
 import React from 'react';
-import { ShieldCheck, X } from 'lucide-react';
 import { AppProvider, useApp } from './context/AppContext';
 import { Sidebar } from './components/Sidebar';
 import { Navbar } from './components/Navbar';
@@ -33,8 +32,6 @@ const MainLayout: React.FC = () => {
     activeTab,
     setActiveTab,
     isLocked,
-    autoBackupNotification,
-    dismissAutoBackupNotification,
     isGasModalOpen,
     closeGasModal,
   } = useApp();
@@ -100,42 +97,6 @@ const MainLayout: React.FC = () => {
       <AdminLoginModal />
       <ChangeProfilePhotoModal />
       <GasSyncModal isOpen={isGasModalOpen} onClose={closeGasModal} />
-
-      {/* Floating Auto-Backup Notification Toast */}
-      {autoBackupNotification && (
-        <div className="fixed bottom-5 right-5 z-50 max-w-sm bg-slate-900 text-white p-4 rounded-2xl shadow-2xl border border-slate-700/80 flex items-start gap-3 animate-in slide-in-from-bottom-5 fade-in">
-          <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
-            <ShieldCheck className="w-5 h-5" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-bold text-emerald-400">
-              {autoBackupNotification.type === 'daily'
-                ? 'Cadangan Harian Otomatis Tersimpan'
-                : 'Cadangan Mingguan Otomatis Tersimpan'}
-            </p>
-            <p className="text-[11px] text-slate-300 truncate mt-0.5">{autoBackupNotification.title}</p>
-            <div className="flex items-center gap-2 mt-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveTab('settings');
-                  dismissAutoBackupNotification();
-                }}
-                className="text-[11px] font-bold text-emerald-400 hover:text-emerald-300 underline"
-              >
-                Lihat Riwayat Cadangan →
-              </button>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={dismissAutoBackupNotification}
-            className="text-slate-400 hover:text-white p-1 rounded-lg transition-colors"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      )}
     </div>
   );
 };
