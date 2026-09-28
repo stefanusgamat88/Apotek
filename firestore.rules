@@ -1,0 +1,144 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net: Default deny everything
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        (request.auth.token.email == 'Stefanus.Gamat@gmail.com' && request.auth.token.email_verified == true)
+      );
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Entity Validators
+    function isValidMedicine(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 200 &&
+             data.category is string && data.category.size() <= 100 &&
+             data.baseUnit is string && data.baseUnit.size() <= 50 &&
+             data.stock is number &&
+             data.sellPrice is number;
+    }
+
+    function isValidCategory(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 100;
+    }
+
+    function isValidTransaction(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.invoiceNumber is string && data.invoiceNumber.size() > 0 && data.invoiceNumber.size() <= 64 &&
+             data.total is number &&
+             data.paymentMethod is string && data.paymentMethod.size() <= 30 &&
+             data.status in ['completed', 'voided'];
+    }
+
+    function isValidCustomer(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 100;
+    }
+
+    function isValidSupplier(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 150;
+    }
+
+    function isValidStockMovement(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.medicineId is string && data.medicineId.size() <= 128 &&
+             data.type in ['in', 'out', 'adjustment'] &&
+             data.qtyChange is number;
+    }
+
+    function isValidSettings(data) {
+      return data.name is string && data.name.size() > 0 && data.name.size() <= 200;
+    }
+
+    function isValidAdmin(data) {
+      return data.uid is string && data.uid.size() <= 128 &&
+             data.email is string && data.email.size() <= 150;
+    }
+
+    // Collections
+    match /medicines/{medicineId} {
+      allow get, list: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(medicineId) && isValidMedicine(incoming());
+      allow update: if isSignedIn() && isValidId(medicineId) && isValidMedicine(incoming()) && incoming().id == existing().id;
+      allow delete: if isAdmin() && isValidId(medicineId);
+    }
+
+    match /categories/{categoryId} {
+      allow get, list: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(categoryId) && isValidCategory(incoming());
+      allow update: if isSignedIn() && isValidId(categoryId) && isValidCategory(incoming()) && incoming().id == existing().id;
+      allow delete: if isAdmin() && isValidId(categoryId);
+    }
+
+    match /transactions/{transactionId} {
+      allow get, list: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(transactionId) && isValidTransaction(incoming());
+      allow update: if isSignedIn() && isValidId(transactionId) && isValidTransaction(incoming()) && (
+        isAdmin() ||
+        incoming().diff(existing()).affectedKeys().hasOnly(['status', 'voidReason', 'voidAt'])
+      );
+      allow delete: if isAdmin() && isValidId(transactionId);
+    }
+
+    match /customers/{customerId} {
+      allow get, list: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(customerId) && isValidCustomer(incoming());
+      allow update: if isSignedIn() && isValidId(customerId) && isValidCustomer(incoming()) && incoming().id == existing().id;
+      allow delete: if isAdmin() && isValidId(customerId);
+    }
+
+    match /suppliers/{supplierId} {
+      allow get, list: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(supplierId) && isValidSupplier(incoming());
+      allow update: if isSignedIn() && isValidId(supplierId) && isValidSupplier(incoming()) && incoming().id == existing().id;
+      allow delete: if isAdmin() && isValidId(supplierId);
+    }
+
+    match /stockMovements/{movementId} {
+      allow get, list: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(movementId) && isValidStockMovement(incoming());
+      allow update: if isAdmin() && isValidId(movementId) && isValidStockMovement(incoming());
+      allow delete: if isAdmin() && isValidId(movementId);
+    }
+
+    match /settings/{settingId} {
+      allow get, list: if isSignedIn();
+      allow create, update: if isAdmin() && isValidId(settingId) && isValidSettings(incoming());
+      allow delete: if isAdmin() && isValidId(settingId);
+    }
+
+    match /admins/{adminId} {
+      allow get, list: if isSignedIn();
+      allow create, update: if isAdmin() && isValidId(adminId) && isValidAdmin(incoming());
+      allow delete: if isAdmin() && isValidId(adminId);
+    }
+  }
+}

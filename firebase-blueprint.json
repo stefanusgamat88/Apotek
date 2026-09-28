@@ -1,0 +1,193 @@
+{
+  "entities": {
+    "Medicine": {
+      "title": "Medicine",
+      "description": "Pharmaceutical product inventory item with batch and pricing details",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "sku": { "type": "string", "maxLength": 64 },
+        "barcode": { "type": "string", "maxLength": 64 },
+        "name": { "type": "string", "maxLength": 200, "minLength": 1 },
+        "genericName": { "type": "string", "maxLength": 200 },
+        "category": { "type": "string", "maxLength": 100 },
+        "indication": { "type": "string", "maxLength": 500 },
+        "requiresPrescription": { "type": "boolean" },
+        "baseUnit": { "type": "string", "maxLength": 50 },
+        "stock": { "type": "number" },
+        "minStock": { "type": "number" },
+        "buyPrice": { "type": "number" },
+        "sellPrice": { "type": "number" },
+        "batchNumber": { "type": "string", "maxLength": 100 },
+        "expiredDate": { "type": "string", "maxLength": 30 },
+        "manufacturer": { "type": "string", "maxLength": 200 },
+        "locationRack": { "type": "string", "maxLength": 100 },
+        "imageUrl": { "type": "string", "maxLength": 1000 },
+        "totalSold": { "type": "number" },
+        "lastSoldDate": { "type": "string", "maxLength": 50 },
+        "updatedAt": { "type": "string", "maxLength": 50 }
+      },
+      "required": ["id", "name", "category", "baseUnit", "stock", "sellPrice"]
+    },
+    "Category": {
+      "title": "Category",
+      "description": "Medicine classification category",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 100, "minLength": 1 },
+        "description": { "type": "string", "maxLength": 500 },
+        "color": { "type": "string", "maxLength": 50 }
+      },
+      "required": ["id", "name"]
+    },
+    "Transaction": {
+      "title": "Transaction",
+      "description": "Sales POS transaction record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "invoiceNumber": { "type": "string", "maxLength": 64, "minLength": 1 },
+        "timestamp": { "type": "string", "maxLength": 64 },
+        "cashierId": { "type": "string", "maxLength": 128 },
+        "cashierName": { "type": "string", "maxLength": 100 },
+        "customerId": { "type": "string", "maxLength": 128 },
+        "customerName": { "type": "string", "maxLength": 100 },
+        "customerPhone": { "type": "string", "maxLength": 50 },
+        "subtotal": { "type": "number" },
+        "discount": { "type": "number" },
+        "tax": { "type": "number" },
+        "total": { "type": "number" },
+        "amountPaid": { "type": "number" },
+        "change": { "type": "number" },
+        "paymentMethod": { "type": "string", "maxLength": 30 },
+        "paymentRef": { "type": "string", "maxLength": 128 },
+        "branchId": { "type": "string", "maxLength": 64 },
+        "branchName": { "type": "string", "maxLength": 100 },
+        "status": { "type": "string", "enum": ["completed", "voided"] },
+        "voidReason": { "type": "string", "maxLength": 500 },
+        "voidAt": { "type": "string", "maxLength": 64 },
+        "notes": { "type": "string", "maxLength": 500 },
+        "totalHPP": { "type": "number" },
+        "netProfit": { "type": "number" }
+      },
+      "required": ["id", "invoiceNumber", "total", "paymentMethod", "status"]
+    },
+    "Customer": {
+      "title": "Customer",
+      "description": "Pharmacy customer record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 100, "minLength": 1 },
+        "phone": { "type": "string", "maxLength": 50 },
+        "email": { "type": "string", "maxLength": 120 },
+        "address": { "type": "string", "maxLength": 300 },
+        "allergies": { "type": "string", "maxLength": 500 },
+        "totalTransactions": { "type": "number" },
+        "totalSpent": { "type": "number" },
+        "registeredDate": { "type": "string", "maxLength": 50 }
+      },
+      "required": ["id", "name"]
+    },
+    "Supplier": {
+      "title": "Supplier",
+      "description": "Drug manufacturer and distributor supplier",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 150, "minLength": 1 },
+        "code": { "type": "string", "maxLength": 50 },
+        "contactPerson": { "type": "string", "maxLength": 100 },
+        "phone": { "type": "string", "maxLength": 50 },
+        "email": { "type": "string", "maxLength": 120 },
+        "address": { "type": "string", "maxLength": 300 },
+        "paymentTerms": { "type": "string", "maxLength": 100 }
+      },
+      "required": ["id", "name"]
+    },
+    "StockMovement": {
+      "title": "StockMovement",
+      "description": "Inventory movement audit trail entry",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "date": { "type": "string", "maxLength": 64 },
+        "medicineId": { "type": "string", "maxLength": 128 },
+        "medicineName": { "type": "string", "maxLength": 200 },
+        "type": { "type": "string", "enum": ["in", "out", "adjustment"] },
+        "qtyChange": { "type": "number" },
+        "unit": { "type": "string", "maxLength": 50 },
+        "previousStock": { "type": "number" },
+        "currentStock": { "type": "number" },
+        "refNumber": { "type": "string", "maxLength": 100 },
+        "notes": { "type": "string", "maxLength": 500 },
+        "operator": { "type": "string", "maxLength": 100 }
+      },
+      "required": ["id", "medicineId", "type", "qtyChange"]
+    },
+    "PharmacySettings": {
+      "title": "PharmacySettings",
+      "description": "Global pharmacy operational configurations and SIA/SIPA credentials",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "maxLength": 200 },
+        "address": { "type": "string", "maxLength": 300 },
+        "phone": { "type": "string", "maxLength": 50 },
+        "siaNumber": { "type": "string", "maxLength": 100 },
+        "sipaNumber": { "type": "string", "maxLength": 100 },
+        "pharmacistName": { "type": "string", "maxLength": 100 },
+        "taxRate": { "type": "number" },
+        "receiptFooter": { "type": "string", "maxLength": 300 },
+        "autoPrint": { "type": "boolean" }
+      },
+      "required": ["name"]
+    },
+    "AdminUser": {
+      "title": "AdminUser",
+      "description": "Designated administrator user document",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "maxLength": 150 },
+        "role": { "type": "string", "maxLength": 50 },
+        "createdAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["uid", "email"]
+    }
+  },
+  "firestore": {
+    "/medicines/{medicineId}": {
+      "schema": "Medicine",
+      "description": "Medicine product catalog and real-time inventory"
+    },
+    "/categories/{categoryId}": {
+      "schema": "Category",
+      "description": "Pharmacy medicine categories"
+    },
+    "/transactions/{transactionId}": {
+      "schema": "Transaction",
+      "description": "Point-of-Sale sales records and receipts"
+    },
+    "/customers/{customerId}": {
+      "schema": "Customer",
+      "description": "Customer patient directory and allergy notes"
+    },
+    "/suppliers/{supplierId}": {
+      "schema": "Supplier",
+      "description": "Registered pharmaceutical distributors and vendors"
+    },
+    "/stockMovements/{movementId}": {
+      "schema": "StockMovement",
+      "description": "Stock change history ledger"
+    },
+    "/settings/{settingId}": {
+      "schema": "PharmacySettings",
+      "description": "System and store receipt configurations"
+    },
+    "/admins/{adminId}": {
+      "schema": "AdminUser",
+      "description": "Authorized administrator registry"
+    }
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "name": "Remix Remix ApotekPOS",
+  "description": "Aplikasi Manajemen Apotek \u0026 Kasir (POS) modern dengan manajemen stok otomatis, kartu stok multi-satuan, dashboard real-time, cetak struk thermal, dan scanner barcode.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
