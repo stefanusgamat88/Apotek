@@ -9,6 +9,7 @@ import { LockScreenModal } from './components/LockScreenModal';
 import { SupervisorPinModal } from './components/SupervisorPinModal';
 import { AdminLoginModal } from './components/AdminLoginModal';
 import { ChangeProfilePhotoModal } from './components/ChangeProfilePhotoModal';
+import { GasSyncModal } from './components/GasSyncModal';
 
 // Views
 import { PosView } from './views/PosView';
@@ -28,7 +29,15 @@ import { PosModesView } from './views/PosModesView';
 import { AiPharmacistView } from './views/AiPharmacistView';
 
 const MainLayout: React.FC = () => {
-  const { activeTab, setActiveTab, isLocked, autoBackupNotification, dismissAutoBackupNotification } = useApp();
+  const {
+    activeTab,
+    setActiveTab,
+    isLocked,
+    autoBackupNotification,
+    dismissAutoBackupNotification,
+    isGasModalOpen,
+    closeGasModal,
+  } = useApp();
 
   const renderActiveView = () => {
     switch (activeTab) {
@@ -90,6 +99,7 @@ const MainLayout: React.FC = () => {
       <SupervisorPinModal />
       <AdminLoginModal />
       <ChangeProfilePhotoModal />
+      <GasSyncModal isOpen={isGasModalOpen} onClose={closeGasModal} />
 
       {/* Floating Auto-Backup Notification Toast */}
       {autoBackupNotification && (

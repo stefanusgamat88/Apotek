@@ -28,7 +28,17 @@ import {
   Supplier,
   Transaction,
   User,
+  GasConfig,
 } from '../types';
+import {
+  getGasConfig,
+  saveGasConfig,
+  testGasConnection,
+  setupGasSheets,
+  pushAllToGas,
+  pullAllFromGas,
+  sendTransactionToGas,
+} from '../services/gasSyncService';
 import { getAutomaticMedicineImage } from '../utils/medicineImageMatcher';
 import {
   checkAndPerformScheduledBackup,
@@ -169,6 +179,17 @@ interface AppContextType {
     monthSales: number;
     monthProfit: number;
   };
+  // Google Apps Script (GAS) Backend Integration
+  gasConfig: GasConfig;
+  updateGasConfig: (updates: Partial<GasConfig>) => void;
+  testGas: (url: string) => Promise<{ success: boolean; message: string; sheetName?: string; sheetUrl?: string }>;
+  initGasSheetsAction: (url: string) => Promise<{ success: boolean; message: string; spreadsheetUrl?: string }>;
+  syncToGas: () => Promise<{ success: boolean; message: string }>;
+  pullFromGasAction: () => Promise<{ success: boolean; message: string }>;
+  isGasSyncing: boolean;
+  isGasModalOpen: boolean;
+  openGasModal: () => void;
+  closeGasModal: () => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -267,6 +288,140 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [receiptTemplate, setReceiptTemplateState] = useState<ReceiptTemplate>(() =>
     loadStorage('receipt_template', 'thermal-58')
   );
+
+  // Google Apps Script (GAS) State
+  const [gasConfig, setGasConfig] = useState<GasConfig>(() => getGasConfig());
+  const [isGasSyncing, setIsGasSyncing] = useState<boolean>(false);
+  const [isGasModalOpen, setIsGasModalOpen] = useState<boolean>(false);
+
+  const updateGasConfig = (updates: Partial<GasConfig>) => {
+    setGasConfig((prev) => {
+      const next = { ...prev, ...updates };
+      saveGasConfig(next);
+      return next;
+    });
+  };
+
+  const openGasModal = () => setIsGasModalOpen(true);
+  const closeGasModal = () => setIsGasModalOpen(false);
+
+  const testGas = async (url: string) => {
+    const res = await testGasConnection(url);
+    if (res.success) {
+      updateGasConfig({
+        webAppUrl: url,
+        spreadsheetUrl: res.sheetUrl || gasConfig.spreadsheetUrl,
+        status: 'connected',
+        lastError: undefined,
+      });
+    } else {
+      updateGasConfig({ status: 'error', lastError: res.message });
+    }
+    return res;
+  };
+
+  const initGasSheetsAction = async (url: string) => {
+    const res = await setupGasSheets(url);
+    if (res.success && res.spreadsheetUrl) {
+      updateGasConfig({ spreadsheetUrl: res.spreadsheetUrl });
+    }
+    return res;
+  };
+
+  const syncToGas = async (): Promise<{ success: boolean; message: string }> => {
+    if (!gasConfig.webAppUrl) {
+      return { success: false, message: 'URL Google Apps Script belum dikonfigurasi.' };
+    }
+    setIsGasSyncing(true);
+    try {
+      const res = await pushAllToGas(gasConfig.webAppUrl, {
+        medicines,
+        transactions,
+        customers,
+        suppliers,
+        stockMovements,
+        settings,
+      });
+      if (res.success) {
+        const nowStr = new Date().toISOString();
+        updateGasConfig({
+          lastSyncTime: nowStr,
+          status: 'connected',
+        });
+      }
+      return res;
+    } finally {
+      setIsGasSyncing(false);
+    }
+  };
+
+  const pullFromGasAction = async (): Promise<{ success: boolean; message: string }> => {
+    if (!gasConfig.webAppUrl) {
+      return { success: false, message: 'URL Google Apps Script belum dikonfigurasi.' };
+    }
+    setIsGasSyncing(true);
+    try {
+      const res = await pullAllFromGas(gasConfig.webAppUrl);
+      if (res.success && res.data) {
+        if (Array.isArray(res.data.medicines) && res.data.medicines.length > 0) {
+          const parsedMeds: Medicine[] = res.data.medicines.map((row: any) => {
+            let units = [];
+            try {
+              units = typeof row['Multi Satuan JSON'] === 'string' ? JSON.parse(row['Multi Satuan JSON']) : [];
+            } catch {
+              units = [];
+            }
+            if (!units || units.length === 0) {
+              units = [
+                {
+                  name: row['Satuan Dasar'] || 'Pcs',
+                  conversionFactor: 1,
+                  price: Number(row['Harga Jual']) || 0,
+                },
+              ];
+            }
+            return {
+              id: String(row['ID Obat'] || 'med-' + Date.now()),
+              sku: String(row['SKU'] || ''),
+              barcode: String(row['Barcode'] || ''),
+              name: String(row['Nama Obat'] || ''),
+              genericName: String(row['Nama Generik'] || ''),
+              category: String(row['Kategori'] || 'Obat Bebas'),
+              indication: String(row['Indikasi'] || ''),
+              requiresPrescription: row['Butuh Resep'] === 'Ya',
+              baseUnit: row['Satuan Dasar'] || 'Tablet',
+              units,
+              stock: Number(row['Stok']) || 0,
+              minStock: Number(row['Min Stok']) || 10,
+              buyPrice: Number(row['Harga Beli (HPP)']) || 0,
+              sellPrice: Number(row['Harga Jual']) || 0,
+              batchNumber: String(row['No Batch'] || ''),
+              expiredDate: String(row['Expired Date'] || ''),
+              manufacturer: String(row['Pabrik/PBF'] || ''),
+              locationRack: String(row['Rak Lokasi'] || ''),
+              totalSold: Number(row['Total Terjual']) || 0,
+              lastSoldDate: String(row['Terakhir Terjual'] || ''),
+            };
+          });
+          setMedicines(parsedMeds);
+          saveStorage('medicines', parsedMeds);
+        }
+
+        const nowStr = new Date().toISOString();
+        updateGasConfig({
+          lastSyncTime: nowStr,
+          status: 'connected',
+        });
+        return {
+          success: true,
+          message: 'Berhasil menarik data terbaru dari Google Sheets!',
+        };
+      }
+      return { success: false, message: res.message || 'Gagal menarik data dari Google Sheets.' };
+    } finally {
+      setIsGasSyncing(false);
+    }
+  };
 
   const setPosLayoutMode = (mode: PosLayoutMode) => {
     setPosLayoutModeState(mode);
@@ -611,6 +766,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       });
     } catch {
       // ignore
+    }
+
+    // Real-time Auto-Sync to Google Apps Script (GAS) Web App in background
+    if (gasConfig.webAppUrl && gasConfig.autoSyncOnTransaction) {
+      sendTransactionToGas(gasConfig.webAppUrl, newTransaction).catch((err) => {
+        console.warn('Auto-sync transaksi ke GAS ditangguhkan:', err);
+      });
     }
 
     return newTransaction;
@@ -1453,6 +1615,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setPosTheme,
         receiptTemplate,
         setReceiptTemplate,
+        // Google Apps Script Backend Integration
+        gasConfig,
+        updateGasConfig,
+        testGas,
+        initGasSheetsAction,
+        syncToGas,
+        pullFromGasAction,
+        isGasSyncing,
+        isGasModalOpen,
+        openGasModal,
+        closeGasModal,
         smartInsights: {
           lowStockItems,
           nearExpiryItems,

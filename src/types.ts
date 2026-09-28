@@ -285,3 +285,12 @@ export interface PharmacySettings {
   autoBackup?: AutoBackupConfig;
 }
 
+export interface GasConfig {
+  webAppUrl: string;
+  spreadsheetUrl?: string;
+  autoSyncOnTransaction: boolean;
+  lastSyncTime: string | null;
+  status: 'connected' | 'disconnected' | 'syncing' | 'error';
+  lastError?: string;
+}
+

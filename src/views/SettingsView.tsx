@@ -19,6 +19,11 @@ import {
   Info,
   Camera,
   X,
+  FileSpreadsheet,
+  ExternalLink,
+  Zap,
+  ArrowUpRight,
+  ArrowDownLeft,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { AutoBackupManagerCard } from '../components/AutoBackupManagerCard';
@@ -33,6 +38,11 @@ export const SettingsView: React.FC = () => {
     currentUser,
     setActiveTab,
     openPhotoModal,
+    gasConfig,
+    openGasModal,
+    syncToGas,
+    pullFromGasAction,
+    isGasSyncing,
   } = useApp();
 
   const [pharmacyName, setPharmacyName] = useState(settings.pharmacyName);
@@ -183,6 +193,119 @@ export const SettingsView: React.FC = () => {
 
       {/* SECTION: Sistem Cadangan Otomatis Harian & Mingguan */}
       <AutoBackupManagerCard />
+
+      {/* SECTION: Backend Google Apps Script (GAS) & Google Sheets */}
+      <div className="bg-gradient-to-br from-white to-emerald-50/40 p-6 rounded-3xl border border-emerald-200/90 shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-emerald-100 gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-bold shadow-sm shrink-0">
+              <FileSpreadsheet className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="font-bold text-sm text-slate-900">
+                  Backend Google Apps Script (GAS) & Google Sheets
+                </h3>
+                <span
+                  className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1 ${
+                    gasConfig.status === 'connected'
+                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                      : gasConfig.status === 'error'
+                      ? 'bg-rose-100 text-rose-800 border border-rose-300'
+                      : 'bg-slate-100 text-slate-700 border border-slate-300'
+                  }`}
+                >
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${
+                      gasConfig.status === 'connected'
+                        ? 'bg-emerald-500 animate-pulse'
+                        : gasConfig.status === 'error'
+                        ? 'bg-rose-500'
+                        : 'bg-slate-400'
+                    }`}
+                  />
+                  {gasConfig.status === 'connected'
+                    ? 'Cloud Sheets Terhubung'
+                    : gasConfig.status === 'error'
+                    ? 'Koneksi Error'
+                    : 'Belum Terhubung'}
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-500 mt-0.5">
+                Jadikan Google Spreadsheet pribadi Anda sebagai database cloud gratis. Seluruh transaksi kasir, master obat, dan mutasi stok tersimpan aman di Google Drive Anda.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={openGasModal}
+              className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 active:scale-95"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5" />
+              Buka Panel & Skrip GAS
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
+          <div className="p-3.5 rounded-2xl bg-white border border-slate-200 flex flex-col justify-between">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Status Web App</span>
+            <div className="mt-1">
+              <p className="text-xs font-mono truncate text-slate-700 font-semibold">
+                {gasConfig.webAppUrl ? gasConfig.webAppUrl.replace('https://script.google.com/macros/s/', '').substring(0, 24) + '...' : 'Belum diisi'}
+              </p>
+              <p className="text-[10px] text-slate-400 mt-0.5">
+                {gasConfig.autoSyncOnTransaction ? '✓ Auto-Sync Transaksi Aktif' : 'Auto-Sync Nonaktif'}
+              </p>
+            </div>
+          </div>
+
+          <div className="p-3.5 rounded-2xl bg-white border border-slate-200 flex flex-col justify-between">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Spreadsheet Terhubung</span>
+            <div className="mt-1">
+              {gasConfig.spreadsheetUrl ? (
+                <a
+                  href={gasConfig.spreadsheetUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs font-bold text-emerald-700 hover:underline flex items-center gap-1"
+                >
+                  <ExternalLink className="w-3 h-3 text-emerald-600" />
+                  Buka Dokumen Google Sheets →
+                </a>
+              ) : (
+                <p className="text-xs text-slate-500 font-medium">Belum ada link spreadsheet</p>
+              )}
+              <p className="text-[10px] text-slate-400 mt-0.5">
+                {gasConfig.lastSyncTime ? `Sinkron: ${new Date(gasConfig.lastSyncTime).toLocaleTimeString('id-ID')}` : 'Belum pernah sync'}
+              </p>
+            </div>
+          </div>
+
+          <div className="p-3.5 rounded-2xl bg-white border border-slate-200 flex items-center justify-between gap-2">
+            <button
+              type="button"
+              onClick={syncToGas}
+              disabled={isGasSyncing || !gasConfig.webAppUrl}
+              className="flex-1 py-2 px-3 rounded-xl bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 border border-slate-200 text-xs font-bold transition-all flex items-center justify-center gap-1 disabled:opacity-50"
+            >
+              <ArrowUpRight className="w-3.5 h-3.5 text-emerald-600" />
+              Upload
+            </button>
+            <button
+              type="button"
+              onClick={pullFromGasAction}
+              disabled={isGasSyncing || !gasConfig.webAppUrl}
+              className="flex-1 py-2 px-3 rounded-xl bg-slate-100 hover:bg-teal-50 text-slate-700 hover:text-teal-700 border border-slate-200 text-xs font-bold transition-all flex items-center justify-center gap-1 disabled:opacity-50"
+            >
+              <ArrowDownLeft className="w-3.5 h-3.5 text-teal-600" />
+              Download
+            </button>
+          </div>
+        </div>
+      </div>
 
       {/* SECTION: Backup & Restore Data JSON Secara Berkala */}
       <div className="bg-gradient-to-br from-white to-slate-50 p-6 rounded-3xl border border-emerald-100 shadow-xs space-y-4">

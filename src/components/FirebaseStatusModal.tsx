@@ -16,6 +16,9 @@ import {
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import firebaseConfig from '../../firebase-applet-config.json';
+import { auth, loginWithGoogle, logoutFirebase, onAuthStateChanged } from '../firebase';
+import type { FirebaseUser } from '../firebase';
+import { pushAllLocalToFirestore, fetchAllFromFirestore } from '../services/firebaseSyncService';
 
 interface FirebaseStatusModalProps {
   isOpen: boolean;
@@ -24,21 +27,51 @@ interface FirebaseStatusModalProps {
 
 export const FirebaseStatusModal: React.FC<FirebaseStatusModalProps> = ({ isOpen, onClose }) => {
   const {
-    firebaseUser,
-    isFirebaseLoading,
-    loginWithGoogleAccount,
-    logoutFirebaseAccount,
-    syncToCloud,
-    pullFromCloud,
     medicines,
     transactions,
     customers,
-    cloudSyncStatus,
+    suppliers,
+    stockMovements,
+    categories,
+    settings,
     isOnline,
   } = useApp();
 
+  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(() => auth.currentUser);
+  const [isFirebaseLoading, setIsFirebaseLoading] = useState<boolean>(false);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [feedback, setFeedback] = useState<{ success: boolean; message: string } | null>(null);
+
+  React.useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (user) => {
+      setFirebaseUser(user);
+    });
+    return () => unsub();
+  }, []);
+
+  const loginWithGoogleAccount = async () => {
+    setIsFirebaseLoading(true);
+    try {
+      await loginWithGoogle();
+      setFeedback({ success: true, message: 'Berhasil login ke akun Google Firebase!' });
+    } catch (err: any) {
+      setFeedback({ success: false, message: 'Gagal login: ' + (err.message || 'Coba lagi') });
+    } finally {
+      setIsFirebaseLoading(false);
+    }
+  };
+
+  const logoutFirebaseAccount = async () => {
+    setIsFirebaseLoading(true);
+    try {
+      await logoutFirebase();
+      setFeedback({ success: true, message: 'Berhasil keluar dari akun Firebase.' });
+    } catch (err: any) {
+      setFeedback({ success: false, message: 'Gagal logout: ' + (err.message || 'Coba lagi') });
+    } finally {
+      setIsFirebaseLoading(false);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -46,7 +79,15 @@ export const FirebaseStatusModal: React.FC<FirebaseStatusModalProps> = ({ isOpen
     setIsSyncing(true);
     setFeedback(null);
     try {
-      const res = await syncToCloud();
+      const res = await pushAllLocalToFirestore({
+        medicines,
+        categories,
+        transactions,
+        customers,
+        suppliers,
+        stockMovements,
+        settings,
+      });
       setFeedback(res);
     } catch (err) {
       setFeedback({
@@ -62,8 +103,11 @@ export const FirebaseStatusModal: React.FC<FirebaseStatusModalProps> = ({ isOpen
     setIsSyncing(true);
     setFeedback(null);
     try {
-      const res = await pullFromCloud();
-      setFeedback(res);
+      const res = await fetchAllFromFirestore();
+      setFeedback({
+        success: true,
+        message: `Berhasil menarik ${res.medicines.length} obat & ${res.transactions.length} transaksi dari Firestore!`,
+      });
     } catch (err) {
       setFeedback({
         success: false,
@@ -73,6 +117,8 @@ export const FirebaseStatusModal: React.FC<FirebaseStatusModalProps> = ({ isOpen
       setIsSyncing(false);
     }
   };
+
+  const cloudSyncStatus = isSyncing ? 'syncing' : (firebaseUser ? 'synced' : 'offline');
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">

@@ -88,4 +88,5 @@ export async function logoutFirebase(): Promise<void> {
   await fbSignOut(auth);
 }
 
-export { onAuthStateChanged, FirebaseUser };
+export { onAuthStateChanged };
+export type { FirebaseUser };

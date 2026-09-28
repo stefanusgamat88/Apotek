@@ -16,6 +16,7 @@ import {
   UserCheck,
   Wifi,
   WifiOff,
+  FileSpreadsheet,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
@@ -36,6 +37,8 @@ export const Navbar: React.FC = () => {
     lockSession,
     logout,
     setIsAuthModalOpen,
+    gasConfig,
+    openGasModal,
   } = useApp();
 
   const [time, setTime] = useState<string>('');
@@ -191,6 +194,37 @@ export const Navbar: React.FC = () => {
           >
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
             <span>Cadangan: Aman</span>
+          </button>
+
+          {/* Google Apps Script (GAS) Sheets Status */}
+          <button
+            type="button"
+            onClick={openGasModal}
+            className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all cursor-pointer shadow-xs ${
+              gasConfig.status === 'connected'
+                ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
+                : gasConfig.status === 'error'
+                ? 'bg-rose-50 text-rose-800 border-rose-300 hover:bg-rose-100'
+                : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+            }`}
+            title="Integrasi Backend Google Apps Script (GAS) & Google Sheets. Klik untuk sinkronisasi atau kelola."
+          >
+            <FileSpreadsheet
+              className={`w-3.5 h-3.5 ${
+                gasConfig.status === 'connected'
+                  ? 'text-emerald-600'
+                  : gasConfig.status === 'error'
+                  ? 'text-rose-600'
+                  : 'text-slate-500'
+              }`}
+            />
+            <span className="hidden xl:inline">
+              GAS: {gasConfig.status === 'connected' ? 'Sheets Terhubung' : 'Google Sheets'}
+            </span>
+            <span className="xl:hidden">GAS</span>
+            {gasConfig.status === 'connected' && (
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            )}
           </button>
 
           {/* Notification Bell Dropdown */}
